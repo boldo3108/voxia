@@ -1,0 +1,76 @@
+# Compila Voxia.exe (un solo archivo) en Windows y lo publica en "Releases" cada vez que subes un tag vX.Y.Z:
+#   git tag v2.1.0
+#   git push origin v2.1.0
+# Las novedades de la versión se escriben antes en notas/v2.1.0.md (si no existe, GitHub las arma solo).
+# También puedes lanzarlo a mano desde la pestaña Actions (queda como "artifact" para descargar).
+name: Compilar Voxia.exe
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  compilar:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: python -m pip install -r requirements.txt pyinstaller
+
+      - name: Poner la versión del tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}".TrimStart("v")
+          Set-Content -Path VERSION -Value $v -NoNewline -Encoding ascii
+          Get-Content VERSION
+
+      - name: Datos del .exe (versión, nombre)
+        run: python herramientas/version_win.py
+
+      - name: Crear Voxia.exe
+        run: >-
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name Voxia
+          --icon recursos\voxia.ico --version-file version_win.txt
+          --add-data "web;web" --add-data "recursos;recursos" --add-data "overlay\index.html;overlay" --add-data "VERSION;."
+          --collect-all soundfile --collect-data certifi
+          --hidden-import pystray._win32 --hidden-import edge_tts
+          --hidden-import webview.platforms.winforms --hidden-import webview.platforms.edgechromium
+          --exclude-module tkinter
+          app.py
+
+      - name: Armar el .zip (para que las versiones 1.x también se actualicen solas)
+        shell: pwsh
+        run: |
+          $v = (Get-Content VERSION).Trim()
+          New-Item -ItemType Directory -Force paquete\Voxia | Out-Null
+          Copy-Item dist\Voxia.exe paquete\Voxia\
+          Compress-Archive -Path paquete\Voxia -DestinationPath "Voxia-$v-portable.zip" -Force
+          "ZIP=Voxia-$v-portable.zip" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          if (Test-Path "notas\${{ github.ref_name }}.md") { "NOTAS=notas\${{ github.ref_name }}.md" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Voxia
+          path: dist/Voxia.exe
+
+      - name: Publicar la versión
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Voxia ${{ github.ref_name }}
+          files: |
+            dist/Voxia.exe
+            ${{ env.ZIP }}
+          body_path: ${{ env.NOTAS }}
+          generate_release_notes: ${{ env.NOTAS == '' }}
+          make_latest: true

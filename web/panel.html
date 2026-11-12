@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voxia</title>
+<link rel="stylesheet" href="/static/panel.css">
+<link rel="icon" href="/recursos/voxia_64.png">
+</head>
+<body>
+<header>
+  <div class="brand"><img class="logo" src="/recursos/voxia_64.png" alt=""><span>VOX<b>IA</b></span><small id="verTxt"></small></div>
+  <nav class="pages" id="nav">
+    <button data-page="pPanel" class="on">🎛️ <span data-t="Panel">Panel</span></button>
+    <button data-page="pLector">📖 <span data-t="Parámetros">Parámetros</span></button>
+    <button data-page="pConfig">⚙️ <span data-t="Configuración">Configuración</span></button>
+  </nav>
+  <div class="chips">
+    <span class="chip" id="chipTwitch"><i></i><span>Twitch</span></span>
+    <span class="chip" id="chipVoz"><i></i><span data-t="Voz">Voz</span></span>
+  </div>
+  <div class="hbtns">
+    <button class="icon big" id="btnColor" data-ti="Color">🎨</button>
+    <button class="icon big" id="btnModo" data-ti="Oscuro / Claro">🌙</button>
+    <div class="pop" id="popColor" hidden>
+      <h2 data-t="Color">Color</h2>
+      <div style="height:10px"></div>
+      <div class="swatches" id="swatches"></div>
+      <div class="seg" id="segModo">
+        <button data-modo="oscuro" data-t="Oscuro">Oscuro</button>
+        <button data-modo="claro" data-t="Claro">Claro</button>
+      </div>
+    </div>
+  </div>
+</header>
+<div class="bar upd" id="updBar" hidden>
+  <span class="t">🎉 <span id="updTxt"></span></span>
+  <button class="btn sm" id="updNotes" data-t="Ver novedades">Ver novedades</button>
+  <button class="btn sm accent" id="updNow" data-t="Actualizar ahora">Actualizar ahora</button>
+  <button class="icon" id="updClose">✕</button>
+</div>
+
+<!-- ================================================================== PANEL -->
+<main class="page panel" id="pPanel">
+  <section class="col">
+    <div class="card">
+      <div class="card-h"><h2>▶ <span data-t="Control">Control</span></h2>
+        <span class="estado-g" id="estadoG"><i></i><span data-t="Apagado">Apagado</span></span></div>
+      <div class="ctrl">
+        <button class="btn accent big" id="btnIniciar">▶ <span data-t="Iniciar (Twitch)">Iniciar (Twitch)</span></button>
+        <button class="btn" id="btnPrueba">🧪 <span data-t="Modo prueba">Modo prueba</span></button>
+        <button class="btn danger" id="btnDetener" disabled>■ <span data-t="Detener">Detener</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>🔊 <span data-t="Sonido">Sonido</span></h2></div>
+      <div class="switches">
+        <label class="switch big"><input type="checkbox" id="swVoz"><span class="tg"></span><span data-t="Voz">Voz</span></label>
+        <label class="switch big"><input type="checkbox" id="swNotif"><span class="tg"></span><span data-t="Notificación">Notificación</span></label>
+      </div>
+      <div class="help" id="teclaTxt" hidden></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>🗣️ <span data-t="Ahora">Ahora</span></h2></div>
+      <div class="ahora">
+        <div class="txt" id="ahoraTxt">—</div>
+        <div class="pie"><span id="filaTxt"></span></div>
+      </div>
+    </div>
+  </section>
+  <section class="card fill">
+    <div class="card-h"><h2>💬 <span data-t="Chat">Chat</span></h2>
+      <button class="icon" id="chatLimpiar" data-ti="Limpiar">🧹</button></div>
+    <div class="chat" id="chat"></div>
+    <div class="send">
+      <input id="simUser" value="viewer_prueba" data-tp="usuario">
+      <input id="simText" data-tp="Escribe como si fueras del chat ({app} lo lee en voz alta)">
+      <label class="check" id="chkCanjeL" hidden><input type="checkbox" id="chkCanje">🎁 <span data-t="Como canje">Como canje</span></label>
+      <button class="btn accent" id="simSend" data-t="Enviar">Enviar</button>
+    </div>
+  </section>
+</main>
+
+<!-- ======================================================= OPCIONES DE LEER -->
+<main class="page" id="pLector" hidden>
+  <div class="cols" id="lectorForm">
+    <div class="card">
+      <div class="card-h"><h2>🎁 <span data-t="Qué lee">Qué lee</span></h2></div>
+      <div class="f"><label data-t="Leer">Leer</label><div class="in"><select data-k="modo_lectura" id="selModo"></select></div></div>
+      <div class="f"><label data-t="Recompensa">Recompensa</label>
+        <div class="in recompensa"><span class="estado" id="recEstado"></span>
+          <input type="hidden" data-k="recompensa_id" id="recId">
+          <button class="btn sm accent" id="recDetectar">🎯 <span data-t="Detectar recompensa">Detectar recompensa</span></button>
+          <button class="btn sm" id="recQuitar" data-t="Quitar">Quitar</button></div></div>
+      <div class="help" data-t="Para «solo canjes de puntos»: en Twitch crea una recompensa de puntos del canal que pida texto (ej. «TTS»). Luego pulsa «Detectar recompensa» y canjéala una vez en tu chat. Si no detectas ninguna, Voxia lee cualquier canje que traiga texto."></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>🗣️ <span data-t="Opciones de habla">Opciones de habla</span></h2></div>
+      <div class="inline"><label class="check"><input type="checkbox" data-k="decir_usuario"><span data-t="Decir el nombre"></span></label>
+        <span class="muted small" style="margin-left:10px" data-t="Texto después del nombre"></span>
+        <input class="mid" data-k="sufijo_usuario"></div>
+      <label class="check"><input type="checkbox" data-k="permitir_forzados"><span data-t="Permitir mensajes forzados (comandos para hablar)"></span></label>
+      <label class="check"><input type="checkbox" data-k="usuario_solo_si_cambia"><span data-t="Solo decir el nombre si el anterior fue otra persona"></span></label>
+      <div class="f"><label data-t="Tiempo de gracia"></label><div class="in"><input class="num" data-k="gracia_segundos" data-n="Tiempo de gracia"><span class="muted" data-t="segundos"></span></div></div>
+      <div class="f"><label data-t="Máximo de"></label><div class="in"><input class="num" data-k="maximo" data-n="Máximo"><select data-k="maximo_unidad" id="selUnidad" style="flex:none;width:150px"></select></div></div>
+      <div class="f"><label data-t="Texto no permitido"></label><div class="in"><input data-k="texto_no_permitido"></div></div>
+      <div class="f"><label data-t="Filtro de links"></label><div class="in"><select data-k="filtro_url" id="selFiltro"></select></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>⏭️ <span data-t="Detener y saltar mensajes cuando…"></span></h2></div>
+      <div class="checks">
+        <label class="check"><input type="checkbox" data-k="saltar_borrado"><span data-t="Mensaje borrado"></span></label>
+        <label class="check"><input type="checkbox" data-k="saltar_timeout"><span data-t="Timeout"></span></label>
+        <label class="check"><input type="checkbox" data-k="saltar_ban"><span data-t="Baneo"></span></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>🔐 <span data-t="Permisos (quién puede hablar)"></span></h2></div>
+      <div class="checks">
+        <label class="check"><input type="checkbox" data-k="perm_mods"><span data-t="Moderadores"></span></label>
+        <label class="check"><input type="checkbox" data-k="perm_subs"><span data-t="Suscriptores"></span></label>
+        <label class="check"><input type="checkbox" data-k="perm_vips"><span data-t="VIPs"></span></label>
+        <label class="check"><input type="checkbox" data-k="perm_todos"><span data-t="Todos"></span></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>🛡️ <span data-t="Anti-spam"></span></h2></div>
+      <label class="check"><input type="checkbox" data-k="acortar_repeticiones"><span data-t="Acortar letras y risas repetidas (jajajajaja → jajaja)"></span></label>
+      <div class="inline"><label class="check"><input type="checkbox" data-k="no_repetidos"><span data-t="No leer mensajes repetidos durante"></span></label>
+        <input class="num" data-k="segundos_repetidos" data-n="Mensajes repetidos"><span class="muted" data-t="segundos"></span></div>
+      <div class="inline"><label class="check"><input type="checkbox" data-k="acortar_numeros"><span data-t="Acortar números de más de"></span></label>
+        <input class="num" data-k="digitos_maximos" data-n="Dígitos"><span class="muted" data-t="dígitos"></span></div>
+      <div class="inline"><span style="margin-left:27px" data-t="Máximo de emojis"></span>
+        <input class="num" data-k="max_emojis" data-n="Máximo de emojis"><span class="muted small" data-t="(cuando no se ignoran los emojis)"></span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>🚷 <span data-t="Palabras prohibidas"></span></h2></div>
+      <label class="check"><input type="checkbox" data-k="usar_palabras_prohibidas"><span data-t="No leer mensajes que tengan alguna de estas palabras"></span></label>
+      <div class="help" data-t="No importan mayúsculas, tildes ni trucos como «p4l4br4» o «palaaabra». Pon * al final para «empieza con» (ej. tont*)."></div>
+      <div class="lista" data-k="palabras_prohibidas" data-ej="ej: palabra o tont*"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>🔗 <span data-t="Chat compartido de Twitch"></span></h2></div>
+      <label class="check"><input type="checkbox" data-k="ignorar_chat_compartido"><span data-t="Ignorar mensajes que vienen de otros canales"></span></label>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>😀 <span data-t="Emotes"></span></h2></div>
+      <div class="checks">
+        <label class="check"><input type="checkbox" data-k="ignorar_emotes_twitch"><span data-t="Ignorar emotes de Twitch"></span></label>
+        <label class="check"><input type="checkbox" data-k="ignorar_emotes_bttv"><span data-t="Ignorar emotes BTTV"></span></label>
+        <label class="check"><input type="checkbox" data-k="ignorar_emotes_ffz"><span data-t="Ignorar emotes FFZ"></span></label>
+        <label class="check"><input type="checkbox" data-k="ignorar_emotes_7tv"><span data-t="Ignorar emotes 7TV"></span></label>
+        <label class="check"><input type="checkbox" data-k="ignorar_emojis"><span data-t="Ignorar emojis"></span></label>
+        <label class="check"><input type="checkbox" data-k="ignorar_cheermotes"><span data-t="Ignorar cheermotes (bits)"></span></label>
+        <label class="check"><input type="checkbox" data-k="permitir_primer_emote"><span data-t="Permitir el primer emote"></span></label>
+      </div>
+      <div class="help" style="margin-top:10px" data-t="Emotes permitidos"></div>
+      <div class="lista" data-k="emotes_permitidos" data-ej="ej: KEKW"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>💬 <span data-t="Comandos para hablar"></span></h2></div>
+      <div class="lista" data-k="comandos_hablar" data-ej="ej: !tts"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>🚫 <span data-t="Prefijos ignorados"></span></h2></div>
+      <label class="check"><input type="checkbox" data-k="ignorar_prefijos"><span data-t="Ignorar si empieza con"></span></label>
+      <div class="lista" data-k="prefijos_ignorados" data-ej="ej: !"></div>
+    </div>
+  </div>
+  <div class="savebar" id="sbLector">
+    <span class="msg" data-t="Se aplica al tiro, aunque el bot esté funcionando."></span>
+    <button class="btn" data-deshacer="lector">↩ <span data-t="Deshacer cambios"></span></button>
+    <button class="btn accent guardar" data-guardar="lector">💾 <span data-t="Guardar"></span></button>
+  </div>
+</main>
+
+<!-- ========================================================== CONFIGURACIÓN -->
+<main class="page" id="pConfig" hidden>
+  <div class="cols" id="configForm">
+    <div class="card">
+      <div class="card-h"><h2>🌐 <span data-t="Idioma"></span></h2></div>
+      <div class="f"><label>Idioma · Language</label><div class="in"><div class="seg" id="segIdioma" style="flex:1"></div></div></div>
+      <div class="help" data-t="Se aplica al tiro en toda la app"></div>
+      <div class="sep"></div>
+      <div class="f"><label data-t="Acceso directo"></label>
+        <div class="in"><button class="btn" id="btnAcceso">🖥️ <span data-t="Crear en el escritorio"></span></button></div></div>
+      <div class="help" data-t="Abre {app} desde el escritorio, con su ícono"></div>
+    </div>
+
+    <div class="card" id="cardTwitch">
+      <div class="card-h"><h2>🟣 Twitch</h2></div>
+      <div class="f"><label data-t="Tu canal"></label><div class="in"><input data-s="twitch" data-k="canal" id="inCanal"></div>
+        <div class="ayuda" data-t="Se llena solo al iniciar sesión (cámbialo si el bot lee otro canal)"></div></div>
+      <div class="f"><label data-t="Cuenta"></label><div class="in"><span class="estado" id="cuentaTxt"></span></div></div>
+      <div class="btns end">
+        <button class="btn" id="btnLogout" hidden data-t="Cerrar sesión"></button>
+        <button class="btn accent" id="btnLogin">🟣 <span data-t="Iniciar sesión con Twitch"></span></button>
+      </div>
+    </div>
+
+    <div class="card" id="cardVoz">
+      <div class="card-h"><h2>🔊 <span data-t="Voz"></span></h2></div>
+      <div class="f"><label data-t="Motor de voz"></label>
+        <div class="in"><select id="selMotor"></select><button class="btn sm" id="btnKey" hidden>🔑 <span data-t="Conseguir key"></span></button></div>
+        <div class="ayuda" id="motorPrecio"></div></div>
+      <div id="camposVoz"></div>
+      <div class="sep"></div>
+      <div class="f"><label data-t="Volumen"></label><div class="in rango"><input type="range" min="0" max="1" step="0.01" data-s="voz" data-k="volumen"><output></output></div></div>
+      <div class="btns end"><button class="btn accent" id="btnProbarVoz">🔊 <span data-t="Probar esta voz"></span></button></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>🔔 <span data-t="Notificación"></span></h2></div>
+      <div class="help" data-t="Suena cada vez que alguien escribe en el chat (aunque «Voz» esté apagada). Si «Voz» está prendida, primero suena la notificación y después se lee el mensaje. Se activa o desactiva con el interruptor «Notificación» del Panel."></div>
+      <div class="f"><label data-t="Volumen"></label><div class="in rango"><input type="range" min="0" max="1" step="0.01" data-s="notificacion" data-k="volumen" id="notifVol"><output></output></div></div>
+      <div class="f"><label data-t="Sonido"></label><div class="in"><span class="estado" id="sonidoTxt"></span></div></div>
+      <div class="btns">
+        <button class="btn" id="btnEscuchar">▶ <span data-t="Escuchar"></span></button>
+        <button class="btn accent" id="btnSubir">📂 <span data-t="Subir sonido…"></span></button>
+        <button class="btn" id="btnRecortar">✂ <span data-t="Recortar de nuevo"></span></button>
+        <button class="btn" id="btnDefecto">↺ <span data-t="Sonido por defecto"></span></button>
+        <input type="file" id="fileSonido" accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.opus" hidden>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>⌨️ <span data-t="Teclas rápidas"></span></h2></div>
+      <div class="f"><label data-t="Saltar mensaje"></label><div class="in"><select data-tecla="saltar" data-parte="mod"></select><span class="muted">+</span><select data-tecla="saltar" data-parte="tecla"></select></div></div>
+      <div class="f"><label data-t="Callar todo (vacía la fila)"></label><div class="in"><select data-tecla="callar" data-parte="mod"></select><span class="muted">+</span><select data-tecla="callar" data-parte="tecla"></select></div></div>
+      <div class="help" data-t="Funcionan aunque estés dentro de un juego. Mientras Voxia está abierta, esa tecla no le llega al juego, así que elige una que no uses."></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>🪟 <span data-t="Windows"></span></h2></div>
+      <label class="switch"><input type="checkbox" data-s="app" data-k="bandeja_minimizar"><span class="tg"></span><span data-t="Al minimizar, ir a la bandeja (junto al reloj)"></span></label>
+      <label class="switch"><input type="checkbox" data-s="app" data-k="bandeja_cerrar"><span class="tg"></span><span data-t="Al cerrar con la X, seguir funcionando en la bandeja"></span></label>
+      <label class="switch"><input type="checkbox" data-s="app" data-k="iniciar_windows"><span class="tg"></span><span data-t="Iniciar Voxia al prender el PC"></span></label>
+      <label class="switch"><input type="checkbox" data-s="app" data-k="iniciar_en_bandeja"><span class="tg"></span><span data-t="Al iniciar con el PC, empezar escondida en la bandeja"></span></label>
+      <label class="switch"><input type="checkbox" data-s="app" data-k="conectar_al_abrir"><span class="tg"></span><span data-t="Conectar a Twitch apenas se abre Voxia"></span></label>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>💾 <span data-t="Respaldo"></span></h2></div>
+      <div class="help" data-t="Guarda tu configuración (opciones, voz, notificación, avatar) en un .zip para pasarla a otro PC o recuperarla si algo falla."></div>
+      <div class="btns end">
+        <button class="btn accent" id="btnExportar">📤 <span data-t="Exportar…"></span></button>
+        <button class="btn" id="btnImportar">📥 <span data-t="Importar…"></span></button>
+        <input type="file" id="fileRespaldo" accept=".zip" hidden>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>🔄 <span data-t="Actualizaciones"></span></h2></div>
+      <div class="f"><label data-t="Versión instalada"></label><div class="in"><b id="verInst"></b></div></div>
+      <label class="switch"><input type="checkbox" data-s="app" data-k="buscar_actualizaciones"><span class="tg"></span><span data-t="Avisarme cuando haya una versión nueva"></span></label>
+      <div class="btns" style="margin-top:8px"><span class="estado" id="novTxt" style="flex:1"></span>
+        <button class="btn" id="btnBuscar">🔍 <span data-t="Buscar ahora"></span></button></div>
+    </div>
+  </div>
+  <div class="savebar" id="sbConfig">
+    <span class="msg" data-t="Los cambios se guardan en config.toml."></span>
+    <button class="btn" data-deshacer="config">↩ <span data-t="Deshacer cambios"></span></button>
+    <button class="btn accent guardar" data-guardar="config">💾 <span data-t="Guardar configuración"></span></button>
+  </div>
+</main>
+
+<!-- ================================================== editor de la notificación -->
+<div class="modal" id="mEditor" hidden>
+  <div class="mbox wide">
+    <h2>✂ <span data-t="Recortar notificación"></span></h2>
+    <div class="help" id="edInfo"></div>
+    <div class="onda"><canvas id="edCanvas" width="1640" height="340" style="height:170px"></canvas></div>
+    <canvas class="regla" id="edRegla" width="1640" height="36"></canvas>
+    <div class="edfila">
+      <span data-t="Inicio (s)"></span><input class="num" id="edIni">
+      <span data-t="Fin (s)"></span><input class="num" id="edFin">
+      <span class="largo" id="edLargo"></span>
+      <span style="flex:1"></span>
+      <label class="check"><input type="checkbox" id="edFundido" checked><span data-t="Entrada y salida suaves"></span></label>
+      <label class="check"><input type="checkbox" id="edNorm"><span data-t="Volumen al máximo"></span></label>
+    </div>
+    <div class="btns">
+      <button class="btn accent" id="edEscuchar">▶ <span data-t="Escuchar recorte"></span></button>
+      <button class="btn" id="edParar">■ <span data-t="Parar"></span></button>
+      <span style="flex:1"></span>
+      <button class="btn" id="edCancelar" data-t="Cancelar"></button>
+      <button class="btn accent" id="edGuardar">💾 <span data-t="Guardar notificación"></span></button>
+    </div>
+    <audio id="edAudio" preload="none"></audio>
+  </div>
+</div>
+
+<div class="modal" id="mDialogo" hidden>
+  <div class="mbox"><h2 id="dlgTitulo"></h2><div class="txt" id="dlgTexto"></div><div id="dlgExtra"></div>
+    <div class="btns end" id="dlgBotones"></div></div>
+</div>
+
+<div id="toasts"></div>
+<script src="/static/js/core.js"></script>
+<script src="/static/js/panel.js"></script>
+<script src="/static/js/lector.js"></script>
+<script src="/static/js/config.js"></script>
+<script src="/static/js/editor.js"></script>
+<script>Voxia.arrancar();</script>
+</body>
+</html>

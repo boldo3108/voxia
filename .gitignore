@@ -1,0 +1,22 @@
+# lo tuyo (no se sube)
+config.toml
+config.toml.bak
+voces_usuarios.json
+voxia.log
+backups/
+overlay/audio/
+overlay/audio_prueba/
+overlay/avatar.png
+overlay/notificacion.wav
+overlay/notificacion_original.*
+# compilación
+__pycache__/
+*.pyc
+.venv/
+venv/
+build/
+dist/
+paquete/
+*.spec
+version_win.txt
+Voxia-*-portable.zip

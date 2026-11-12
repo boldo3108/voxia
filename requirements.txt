@@ -1,0 +1,7 @@
+aiohttp>=3.9
+edge-tts>=6.1
+pywebview>=5.3
+soundfile>=0.12
+numpy>=1.26
+pillow>=10.0
+pystray>=0.19

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Voxia Overlay</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --morado: #FF7A1A;      /* color de acento (lo cambia la app) */
+    --morado-osc: #D9600A;
+    --claro: #FFB37A;
+    --fondo: rgba(16, 16, 20, 0.92);
+    --texto: #f5f5f7;
+    --suave: #c9c9d1;
+  }
+  html, body { margin: 0; background: transparent; overflow: hidden;
+    font-family: "Fredoka", "Segoe UI", sans-serif; }
+
+  #escena { position: fixed; left: 24px; bottom: 24px; display: flex;
+    align-items: flex-end; gap: 16px; max-width: calc(100vw - 48px); }
+
+  /* ---------- avatar ---------- */
+  #avatar { flex: none; width: 120px; height: 120px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--claro), var(--morado) 55%, var(--morado-osc));
+    border: 4px solid #fff; box-shadow: 0 8px 24px rgba(0,0,0,.45);
+    position: relative; overflow: hidden; opacity: 0; --y: 30px;
+    transform: translateY(var(--y)) scale(var(--s, 1)); transition: opacity .35s, transform .1s; }
+  #avatar.ver { opacity: 1; --y: 0px; }
+  #avatar img { width: 100%; height: 100%; object-fit: cover; display: none; }
+  #avatar.con-imagen img { display: block; }
+  #avatar.con-imagen .cara { display: none; }
+  .cara { position: absolute; inset: 0; }
+  .ojo { position: absolute; top: 40px; width: 16px; height: 22px; background: #fff;
+    border-radius: 50%; animation: parpadeo 4s infinite; }
+  .ojo.i { left: 34px; } .ojo.d { right: 34px; }
+  .boca { position: absolute; left: 50%; bottom: 26px; width: 40px; height: calc(6px + var(--b, 0) * 22px);
+    margin-left: -23px; background: #1a1a1f; border-radius: 0 0 22px 22px; border: 3px solid #fff;
+    border-top-width: 2px; transition: height .06s; }
+  @keyframes parpadeo { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+
+  /* ---------- globo ---------- */
+  #globo { background: var(--fondo); color: var(--texto); border-radius: 22px 22px 22px 6px;
+    padding: 16px 22px 18px; max-width: 640px; min-width: 220px;
+    border: 3px solid var(--morado); box-shadow: 0 10px 30px rgba(0,0,0,.5);
+    opacity: 0; transform: translateY(16px) scale(.96); transform-origin: bottom left;
+    transition: opacity .3s, transform .3s; }
+  #globo.ver { opacity: 1; transform: none; }
+  #nombre { font-weight: 700; color: var(--morado); font-size: 15px; letter-spacing: .5px;
+    text-transform: uppercase; margin-bottom: 4px; }
+  #pregunta { color: var(--suave); font-size: 17px; margin-bottom: 8px; font-weight: 500; }
+  #pregunta:empty { display: none; }
+  #pregunta b { color: #fff; }
+  #respuesta { font-size: 26px; line-height: 1.25; font-weight: 600; }
+  #respuesta .cursor { display: inline-block; width: 3px; height: 1em; background: var(--morado);
+    vertical-align: -3px; margin-left: 2px; animation: cur .8s steps(1) infinite; }
+  @keyframes cur { 50% { opacity: 0; } }
+
+  #aviso { position: fixed; top: 12px; left: 12px; font: 14px sans-serif; color: #fff;
+    background: #333; padding: 8px 12px; border-radius: 8px; cursor: pointer; display: none; }
+</style>
+</head>
+<body>
+<div id="aviso">Estás viendo el overlay en el navegador: haz clic aquí para permitir el audio</div>
+<div id="escena">
+  <div id="avatar">
+    <img src="/archivos/avatar.png" alt="" onload="this.parentNode.classList.add('con-imagen')" onerror="this.remove()">
+    <div class="cara"><div class="ojo i"></div><div class="ojo d"></div><div class="boca"></div></div>
+  </div>
+  <div id="globo">
+    <div id="nombre">Voxia</div>
+    <div id="pregunta"></div>
+    <div id="respuesta"></div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const avatar = $("avatar"), globo = $("globo"), resp = $("respuesta"), preg = $("pregunta");
+let notif = null;
+let ws, audio = null, ctx = null, analizador = null, ocultarT = null, escribirT = null;
+
+// Fuera de OBS los navegadores bloquean el audio hasta que hagas clic
+if (!window.obsstudio) {
+  $("aviso").style.display = "block";
+  $("aviso").onclick = () => { ctx = ctx || new AudioContext(); ctx.resume(); $("aviso").remove(); };
+}
+
+function conectar() {
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onmessage = (e) => {
+    const d = JSON.parse(e.data);
+    if (d.tipo === "hablar") hablar(d);
+    if (d.tipo === "callar") callar();
+    if (d.tipo === "sonido") {            // notificación: suena aparte de la voz
+      if (notif) notif.pause();
+      notif = new Audio(d.audio);
+      notif.volume = d.volumen ?? 0.8;
+      notif.play().catch(() => {});
+    }
+    if (d.tipo === "parar_sonido" && notif) { notif.pause(); notif = null; }
+  };
+  ws.onclose = () => setTimeout(conectar, 2000);
+}
+
+function escapar(t) { const s = document.createElement("span"); s.textContent = t; return s.innerHTML; }
+
+function mostrar() {
+  clearTimeout(ocultarT);
+  avatar.classList.add("ver"); globo.classList.add("ver");
+}
+function ocultar(seg) {
+  clearTimeout(ocultarT);
+  ocultarT = setTimeout(() => { avatar.classList.remove("ver"); globo.classList.remove("ver"); }, seg * 1000);
+}
+
+function escribir(texto, msPorLetra) {
+  clearInterval(escribirT);
+  let i = 0; resp.innerHTML = '<span class="cursor"></span>';
+  escribirT = setInterval(() => {
+    i++;
+    resp.innerHTML = escapar(texto.slice(0, i)) + (i < texto.length ? '<span class="cursor"></span>' : "");
+    if (i >= texto.length) clearInterval(escribirT);
+  }, msPorLetra);
+}
+
+function fin() { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ tipo: "fin" })); }
+
+function callar() {
+  if (audio) { audio.pause(); audio = null; }
+  clearInterval(escribirT);
+  avatar.style.setProperty("--b", 0); avatar.style.setProperty("--s", 1);
+  ocultar(0.2);
+}
+
+function hablar(d) {
+  if (audio) { audio.pause(); audio = null; }
+  if (d.nombre) $("nombre").textContent = d.nombre;
+  if (d.colores) {
+    const r = document.documentElement.style;
+    r.setProperty("--morado", d.colores.acento);
+    r.setProperty("--morado-osc", d.colores.fuerte);
+    r.setProperty("--claro", d.colores.claro);
+  }
+  preg.innerHTML = d.pregunta ? `<b>${escapar(d.usuario)}:</b> ${escapar(d.pregunta)}` : "";
+  mostrar();
+  if (!d.audio) {                       // sin audio en el overlay: solo texto
+    escribir(d.respuesta, 35);
+    ocultar(d.visible + d.respuesta.length * 0.035);
+    return;
+  }
+  audio = new Audio(d.audio);
+  ctx = ctx || new AudioContext();
+  const fuente = ctx.createMediaElementSource(audio);
+  analizador = ctx.createAnalyser(); analizador.fftSize = 256;
+  fuente.connect(analizador); analizador.connect(ctx.destination);
+  const datos = new Uint8Array(analizador.frequencyBinCount);
+  const actual = audio;
+
+  audio.onloadedmetadata = () => {
+    const ms = Math.max(15, (audio.duration * 1000 * 0.92) / d.respuesta.length);
+    escribir(d.respuesta, ms);
+  };
+  audio.onended = audio.onerror = () => {
+    avatar.style.setProperty("--b", 0); avatar.style.setProperty("--s", 1);
+    resp.textContent = d.respuesta;
+    ocultar(d.visible); fin();
+  };
+  (function animar() {
+    if (audio !== actual || audio.ended) return;
+    analizador.getByteFrequencyData(datos);
+    const v = Math.min(1, datos.slice(2, 40).reduce((a, b) => a + b, 0) / (38 * 150));
+    avatar.style.setProperty("--b", v.toFixed(2));
+    avatar.style.setProperty("--s", (1 + v * 0.08).toFixed(3));
+    requestAnimationFrame(animar);
+  })();
+  ctx.resume().then(() => audio.play()).catch(() => { escribir(d.respuesta, 35); fin(); });
+}
+
+conectar();
+</script>
+</body>
+</html>
